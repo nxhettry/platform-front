@@ -623,17 +623,18 @@ export async function editAd(req, res) {
   // Extracting the data from the request
   const { adId, email, newPrice } = data;
 
-  if(!adId || !email || !newPrice) {
+  if (!adId || !email || !newPrice) {
     return res.status(400).json({
       message: "AN eror occured while editing the ad",
     });
   }
 
   try {
-    
     await connectDB();
 
-    const theUser = await user.findOne({ $or: [{ email: email }, { username: email }] });
+    const theUser = await user.findOne({
+      $or: [{ email: email }, { username: email }],
+    });
 
     if (!theUser) {
       return res.status(404).json({
@@ -657,8 +658,6 @@ export async function editAd(req, res) {
       message: "Ad edited successfully",
       data: theAd,
     });
-
-
   } catch (error) {
     console.error(error);
     return res.status(500).json({
@@ -669,104 +668,124 @@ export async function editAd(req, res) {
 
 //To delete the ad
 export async function deleteAd(req, res) {
-    const data = await req.body;
+  const data = await req.body;
 
-    const {email, adId} = data;
+  const { email, adId } = data;
 
-    if (!email || !adId) {
-        return res.status(400).json({
-            message: "An error occured while deleting the ad",
-        });
+  if (!email || !adId) {
+    return res.status(400).json({
+      message: "An error occured while deleting the ad",
+    });
+  }
+
+  try {
+    await connectDB();
+
+    const theUser = await user.findOne({
+      $or: [{ email: email }, { username: email }],
+    });
+
+    if (!theUser) {
+      return res.status(404).json({
+        message: "User not found in Database",
+      });
     }
 
-    try {
+    const theAd = theUser.p2pAd.find((ad) => ad._id.toString() === adId);
 
-        await connectDB();
-
-        const theUser = await user.findOne({ $or: [{ email: email }, { username: email }] });
-
-        if (!theUser) {
-            return res.status(404).json({
-                message: "User not found in Database",
-            });
-        }
-
-        const theAd = theUser.p2pAd.find((ad) => ad._id.toString() === adId);
-
-        if (!theAd) {
-            return res.status(404).json({
-                message: "Ad not found",
-            });
-        }
-
-        //Deleting the ad
-        theUser.p2pAd = theUser.p2pAd.filter((ad) => ad._id.toString() !== adId);
-
-        //Save the user
-        await theUser.save();
-
-        return res.status(200).json({
-            message: "Ad deleted successfully",
-        });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({
-            message: "Failed to delete ad",
-        });
+    if (!theAd) {
+      return res.status(404).json({
+        message: "Ad not found",
+      });
     }
+
+    // Increment the user's asset if they are selling
+    if (theAd.type === "sell") {
+      const userAssetActive = theUser.userAssets.find(
+        (asset) => asset.asset === theAd.asset
+      );
+
+      const userAssetFrozen = theUser.frozenUserAssets.find(
+        (asset) => asset.asset === theAd.asset
+      );
+
+      if(!userAssetActive || !userAssetFrozen){
+        return res.status(404).json({
+          message: "User asset not found",
+        });
+      }
+      
+      userAssetActive.amount += theAd.amount;
+      userAssetFrozen.amount -= theAd.amount;
+
+    }
+
+    //Deleting the ad
+    theUser.p2pAd = theUser.p2pAd.filter((ad) => ad._id.toString() !== adId);
+
+    //Save the user
+    await theUser.save();
+
+    return res.status(200).json({
+      message: "Ad deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Failed to delete ad",
+    });
+  }
 }
 
 //To update Ad status
-
 export async function updateStatus(req, res) {
-    const data = await req.body;
+  const data = await req.body;
 
-    const {email, adId} = data;
+  const { email, adId } = data;
 
-    if (!email || !adId) {
-        return res.status(400).json({
-            message: "An error occured while updating the ad status",
-        });
+  if (!email || !adId) {
+    return res.status(400).json({
+      message: "An error occured while updating the ad status",
+    });
+  }
+
+  try {
+    await connectDB();
+
+    const theUser = await user.findOne({
+      $or: [{ email: email }, { username: email }],
+    });
+
+    if (!theUser) {
+      return res.status(404).json({
+        message: "User not found in Database",
+      });
     }
 
-    try {
+    const theAd = theUser.p2pAd.find((ad) => ad._id.toString() === adId);
 
-        await connectDB();
-
-        const theUser = await user.findOne({ $or: [{ email: email }, { username: email }] });
-
-        if (!theUser) {
-            return res.status(404).json({
-                message: "User not found in Database",
-            });
-        }
-
-        const theAd = theUser.p2pAd.find((ad) => ad._id.toString() === adId);
-
-        if (!theAd) {
-            return res.status(404).json({
-                message: "Ad not found",
-            });
-        }
-
-        if (theAd.status === "Online") {
-            theAd.status = "Offline";
-        } else {
-            theAd.status = "Online";
-        }
-
-        await theUser.save();
-
-        return res.status(200).json({
-            message: "Ad status updated successfully",
-            data: theAd,
-        });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({
-            message: "Failed to update ad status",
-        });
+    if (!theAd) {
+      return res.status(404).json({
+        message: "Ad not found",
+      });
     }
+
+    if (theAd.status === "Online") {
+      theAd.status = "Offline";
+    } else {
+      theAd.status = "Online";
+    }
+
+    await theUser.save();
+
+    return res.status(200).json({
+      message: "Ad status updated successfully",
+      data: theAd,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Failed to update ad status",
+    });
+  }
 }
