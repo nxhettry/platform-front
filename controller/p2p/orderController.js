@@ -220,11 +220,11 @@ export async function createSwiftBuy(req, res) {
             messages: [],
         });
 
-        const res = await orderData.save();
+        const result = await orderData.save();
 
         return res.status(200).json({
             message: "Order Created Succesfully",
-            data: res.orderid.toString(),
+            data: result.orderid.toString(),
         });
     } catch (error) {
         return res.status(500).json({ message: "Internal server error" });

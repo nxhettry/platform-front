@@ -2,8 +2,8 @@ import connectDB from "../utils/connectDB.js";
 import user from "../model/user.js";
 
 //To topup the balance manually
-export async function adAssetManually(request) {
-    const data = await request.json();
+export async function adAssetManually (req, res) {
+    const data = await req.body;
     const { email, asset, amount } = data;
 
     try {
@@ -12,7 +12,7 @@ export async function adAssetManually(request) {
         const userExists = await user.findOne({ email });
 
         if (!userExists) {
-            return resizeBy.status(404).json({ message: "User not found" });
+            return res.status(404).json({ message: "User not found" });
         }
 
         // finding the user's asset
@@ -23,8 +23,8 @@ export async function adAssetManually(request) {
 
         await userExists.save();
 
-        return resizeBy.status(200).json({ message: "Asset added successfully" });
+        return res.status(200).json({ message: "Asset added successfully" });
     } catch (error) {
-        return resizeBy.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ message: "Internal server error" });
     }
 }
