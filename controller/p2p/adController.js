@@ -258,8 +258,6 @@ export async function getMyAds(req, res) {
     // Extract dynamic data outside of the try/catch block
     const { email } = req.query;
 
-    console.log("Email: ", email);
-
     // Handle the absence of an email parameter early
     if (!email) {
         return res.status(400).json({ message: "Email is required" });
@@ -553,8 +551,6 @@ export async function getFilteredAdsMob(req, res) {
                 data: [],
             });
         }
-
-        console.log("REsult",result);
 
         return res.status(200).json({
             message: "All ads fetched successfully",

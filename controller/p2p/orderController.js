@@ -67,6 +67,11 @@ export async function createP2POrder(req, res) {
         activeAsset.amount -= data.orderdetails.totalAsset;
         toFreezeAsset.amount += data.orderdetails.totalAsset;
 
+        // Deducting the amount from the ad
+        const ad = seller.p2pAd.find((ad) => ad._id == theAdId);
+        ad.amount -= data.orderdetails.totalAsset;
+
+
         // Save the seller
         await seller.save();
 
@@ -95,6 +100,21 @@ export async function cancelP2POrder(req, res) {
         await connectDB();
 
         const order = await p2pOrder.findOne({ orderid: orderId });
+
+        const userwithAd = await user.findOne({ p2pAd: { $elemMatch: { _id: order.adId } } });
+
+        if (!userwithAd) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const ad = userwithAd.p2pAd.find((ad) => ad._id == order.adId);
+
+        if (!ad) {
+            return res.status(404).json({ message: "Ad not found" });
+        }
+
+        ad.amount += order.orderdetails.totalAsset;
+
         if (!order) {
             return res.status(404).json({ message: "Order not found" });
         }
@@ -108,6 +128,7 @@ export async function cancelP2POrder(req, res) {
         order.cancelReason = reason;
 
         await order.save();
+        await userwithAd.save();
 
         return res.status(200).json({
             message: "Order Cancelled",
@@ -428,23 +449,6 @@ export async function releaseCrypto(req, res) {
         // Add the amount from the buyer's balance
         buyerAsset.amount += totalAsset;
 
-        // Checking where the ad is from
-        const sellerAd = sellerInfo.p2pAd.find((ad) => ad._id == adId);
-        const buyerAd = buyerInfo.p2pAd.find((ad) => ad._id == adId);
-
-        if (sellerAd) {
-            sellerAd.amount -= totalAsset;
-        }
-
-        if (buyerAd) {
-            buyerAd.amount -= totalAsset;
-        }
-
-        if (!sellerAd && !buyerAd) {
-            return res.status(400).json({
-                message: `available ad not updated`,
-            });
-        }
 
         // Save the updated buyer's balance
         await buyerInfo.save();
