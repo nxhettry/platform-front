@@ -10,4 +10,4 @@ router.get("/getallad/buy", getAllBuyAds);
 router.get("/getallad/sell", getAllSellAds);
 router.post("/validateAsset", validateAsset);
 
-export default router;
+export default router;  

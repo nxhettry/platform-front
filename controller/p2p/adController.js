@@ -1,7 +1,6 @@
 import user from "../../model/user.js";
 import connectDB from "../../utils/connectDB.js";
 
-// To post a new AD
 export async function postNewAd(req, res) {
 
     const data = await req.body;
