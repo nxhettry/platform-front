@@ -253,10 +253,8 @@ export async function getAllSellAds(req, res) {
 
 // To get all the users ads
 export async function getMyAds(req, res) {
-  // Extract dynamic data outside of the try/catch block
   const { email } = req.query;
 
-  // Handle the absence of an email parameter early
   if (!email) {
     return res.status(400).json({ message: "Email is required" });
   }
@@ -265,7 +263,7 @@ export async function getMyAds(req, res) {
     await connectDB();
 
     const usersWithAds = await user.find(
-      { email: email },
+      { $or: [{ email: email }, { username: email }] },
       { p2pAd: 1, _id: 1, date: 1 }
     );
 
@@ -315,7 +313,7 @@ export async function getFilteredAdsMob(req, res) {
       });
     }
 
-    const { isBuy, isOnline, isOffline, isNPR, isINR, isAED, isUSD } =
+    const { isBuy, isOnline, isOffline, isAll, isNPR, isINR, isAED, isUSD } =
       filterStates;
 
     //  Get all the ads from the selected user
@@ -353,6 +351,19 @@ export async function getFilteredAdsMob(req, res) {
 
     //Checking the filter states for the buy button
     if (isBuy) {
+      if (isAll) {
+        extractedAds.forEach((ad) => {
+          if (ad.type === "buy") {
+            result.push(ad);
+          }
+        });
+
+        return res.status(200).json({
+          message: "All ads fetched successfully",
+          data: result,
+        });
+      }
+
       if (isOnline && !isOffline) {
         if (isNPR) {
           extractedAds.forEach((ad) => {
@@ -449,6 +460,18 @@ export async function getFilteredAdsMob(req, res) {
 
     //Checking the filter states for the sell button
     if (!isBuy) {
+      if (isAll) {
+        extractedAds.forEach((ad) => {
+          if (ad.type === "sell") {
+            result.push(ad);
+          }
+        });
+        return res.status(200).json({
+          message: "All ads fetched successfully",
+          data: result,
+        });
+      }
+
       if (isOnline && !isOffline) {
         if (isNPR) {
           extractedAds.forEach((ad) => {
@@ -709,15 +732,14 @@ export async function deleteAd(req, res) {
         (asset) => asset.asset === theAd.asset
       );
 
-      if(!userAssetActive || !userAssetFrozen){
+      if (!userAssetActive || !userAssetFrozen) {
         return res.status(404).json({
           message: "User asset not found",
         });
       }
-      
+
       userAssetActive.amount += theAd.amount;
       userAssetFrozen.amount -= theAd.amount;
-
     }
 
     //Deleting the ad
